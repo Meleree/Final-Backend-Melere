@@ -61,4 +61,4 @@ generateNewId = (products) => {
 }
 };
 
-export default ProductManager;  
+export default ProductManager;
