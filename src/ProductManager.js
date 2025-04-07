@@ -7,25 +7,25 @@ class ProductManager {
 
 //getProducts
 getAllProducts = async () => {
-    const productsJson = await fs.promises.readFile(this.path, 'utf-8');
+    const productsJson = await fs.promises.readFile(this.path, 'UTF-8');
     return JSON.parse(productsJson);
 }
 
 //getProductById
 getProductById = async (pid) => {
-    const productsJson = await fs.promises.readFile(this.path, 'utf-8');
+    const productsJson = await fs.promises.readFile(this.path, 'UTF-8');
     const products = JSON.parse(productsJson);
-    return products.find((product) => product.id === parseInt(pid));
+    return products.find((products) => products.id === parseInt(pid));
 }
 
 //addProduct
 createProduct = async (product) => {
-    const productsJson = await fs.promises.readFile(this.path, 'utf-8');
+    const productsJson = await fs.promises.readFile(this.path, 'UTF-8');
     const products = JSON.parse(productsJson);
     const id = this.generateNewId(products);  // Llamamos al método generateNewId
     product.id = id;  // Asignamos el ID al producto
     products.push(product);
-    await fs.promises.writeFile(this.path, JSON.stringify(products, null, 2), 'utf-8');
+    await fs.promises.writeFile(this.path, JSON.stringify(products, null, 2), 'UTF-8');
     return product;
 }
 

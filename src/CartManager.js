@@ -21,7 +21,7 @@ addCart = async() => {
     carts.push({ id , products: [] });
 
     await fs.promises.writeFile(this.path, JSON.stringify(carts, null, 2), 'utf-8' );
-    return carts;
+    return { carts, message: "Nuevo carrito creado"};
 }
 
 //getProductsInCartById
