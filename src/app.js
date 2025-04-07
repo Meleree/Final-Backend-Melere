@@ -73,7 +73,7 @@ app.get('/api/carts/:cid', async(req, res) => {
 
 //Debe agregar el producto al carrito indicado
 app.post('/api/carts/:cid/product/:pid', async (req, res) => {
-    const cid = req.params.cid;
+    const cid = parseInt(req.params.cid);
     const pid = parseInt(req.params.pid);
     const quantity = req.body.quantity;
 
