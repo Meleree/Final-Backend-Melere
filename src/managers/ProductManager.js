@@ -58,7 +58,20 @@ generateNewId = (products) => {
     } else {
         return 1;
     }
-}
 };
+};
+
+//handlebars config
+app.engine('handlebars', engine());
+app.set('view engine', 'handlebars');
+app.set('views', './src/views');
+
+ //endpoints
+app.use('/', viewsRouter);
+app.use('/api/products', productsRouter)
+
+app.listen(8080, () => {
+    console.log("Servidor iniciado en el puerto 8080");
+});
 
 export default ProductManager;
