@@ -2,6 +2,7 @@ import { Router } from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";  
+import uploader from '../utils/uploader.js';
 
 const productsRouter = Router();
 
@@ -42,11 +43,14 @@ productsRouter.get("/:pid", (req, res) => {
 });
 
 // Agregar un producto
-productsRouter.post("/", (req, res) => {
-  const { title, description, code, price, status, stock, category, thumbnails } = req.body;
+productsRouter.post("/", uploader.single("file"), (req, res) => {
+  const { title, description, code, price, status, stock, category } = req.body;
+  const thumbnails = req.file ? [req.file.filename] : [];
+
   const products = readProducts();
+
   const newProduct = {
-    id: (products.length + 1).toString(), 
+    id: (products.length + 1).toString(),
     title,
     description,
     code,
@@ -54,8 +58,9 @@ productsRouter.post("/", (req, res) => {
     status,
     stock,
     category,
-    thumbnails,
+    thumbnails
   };
+
   products.push(newProduct);
   writeProducts(products);
 
