@@ -59,10 +59,10 @@ app.get('/home', async (req, res) => {
 
 // Ruta para realtimeproducts
 app.get('/realtimeproducts', (req, res) => {
-  res.render('realTimeProducts');  // Renderiza realTimeProducts.handlebars
+  res.render('realTimeProducts');  
 });
 
-// Ruta para dashboard (corregida para pasar products)
+// Ruta para dashboard 
 app.get('/dashboard', async (req, res) => {
   try {
     const products = await productManager.getAllProducts();
@@ -78,7 +78,7 @@ app.get('/dashboard', async (req, res) => {
 });
 
 // WebSocket para productos en tiempo real
-let products = [];  // Almacenamiento temporal de productos (puedes cambiar a base de datos más adelante)
+let products = []; 
 
 // Agregar un nuevo producto usando WebSocket
 app.post('/add-product', (req, res) => {
@@ -88,7 +88,7 @@ app.post('/add-product', (req, res) => {
   // Emitir el nuevo producto a todos los clientes conectados
   io.emit('new-product', newProduct);
 
-  res.redirect('/');  // Redirigir a la página principal
+  res.redirect('/');  
 });
 
 // Eliminar un producto usando WebSocket
@@ -99,7 +99,7 @@ app.post('/delete-product', (req, res) => {
   // Emitir la eliminación del producto
   io.emit('delete-product', productToDelete.id);
 
-  res.redirect('/');  // Redirigir a la página principal
+  res.redirect('/');  
 });
 
 // Configuración de WebSockets

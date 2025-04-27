@@ -1,9 +1,7 @@
-/* Modo Oscuro SIEMPRE aplicado */
-
 /* Fondo y texto */
 body {
-    background-color: #1a1a1a; /* fondo negro oscuro */
-    color: #e0e0e0; /* texto gris claro */
+    background-color: #1a1a1a;
+    color: #e0e0e0; 
     margin: 0;
     font-family: 'Arial', sans-serif;
 }
@@ -18,8 +16,8 @@ body {
 }
 
 .product-card {
-    background-color: #2c2c2c; /* gris oscuro */
-    border: 1px solid #6c5ce7; /* violeta claro */
+    background-color: #2c2c2c; 
+    border: 1px solid #6c5ce7; 
     border-radius: 12px;
     padding: 16px;
     width: 250px;
@@ -47,7 +45,7 @@ body {
 .product-title {
     font-size: 20px;
     margin: 10px 0;
-    color: #dfe6e9; /* texto más claro */
+    color: #dfe6e9; 
 }
 
 .product-price {
@@ -57,7 +55,7 @@ body {
 
 /* Botón Eliminar */
 .delete-btn {
-    background-color: #8e44ad; /* violeta fuerte */
+    background-color: #8e44ad; 
     color: white;
     border: none;
     padding: 10px 15px;

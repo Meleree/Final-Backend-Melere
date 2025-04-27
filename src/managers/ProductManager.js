@@ -22,8 +22,8 @@ getProductById = async (pid) => {
 createProduct = async (product) => {
     const productsJson = await fs.promises.readFile(this.path, 'UTF-8');
     const products = JSON.parse(productsJson);
-    const id = this.generateNewId(products);  // Llamamos al método generateNewId
-    product.id = id;  // Asignamos el ID al producto
+    const id = this.generateNewId(products);  
+    product.id = id;  
     products.push(product);
     await fs.promises.writeFile(this.path, JSON.stringify(products, null, 2), 'UTF-8');
     return product;
@@ -35,7 +35,7 @@ updateProductById = async (id, updateData) => {
     const products = JSON.parse(productsJson);
     const product = products.find((product) => product.id === id);
     if (product) {
-        Object.assign(product, updateData);  // Actualizamos los campos del producto
+        Object.assign(product, updateData); 
         await fs.promises.writeFile(this.path, JSON.stringify(products, null, 2), 'utf-8');
         return product;
     }
