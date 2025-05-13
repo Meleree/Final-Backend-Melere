@@ -4,141 +4,101 @@ import path from "path";
 import { fileURLToPath } from "url";
 import http from "http";
 import { Server } from "socket.io";
-import ProductManager from './managers/ProductManager.js';
-
-// Importar routers
+import dotenv from "dotenv";
+import connectMongoDB from "./config/db.js";
+import viewsRouter from "./routes/views.router.js";
 import productsRouter from "./routes/products.router.js";
 import cartsRouter from "./routes/carts.router.js";
+import Product from "./models/product.model.js";
+
+// Configuración inicial
+dotenv.config(); // Cargar variables de entorno
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
 // Definir rutas y estructura de directorios
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-
-// 👇 MOVEMOS ACA la creación de productManager (esto es lo que corregimos)
-const productManager = new ProductManager("./src/data/products.json");
-
-// Middleware
-app.use(express.static(path.join(__dirname, '../public')));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-// Configuracion de rutas
-app.use('/api/products', productsRouter);
-app.use('/api/carts', cartsRouter);
+// Conexión a MongoDB
+connectMongoDB();
 
 // Configuración de Handlebars
-app.engine('handlebars', engine());
-app.set('view engine', "handlebars");
-app.set('views', path.join(__dirname, "views"));
+app.engine(
+  "handlebars",
+  engine({
+    runtimeOptions: {
+      allowProtoPropertiesByDefault: true,
+      allowProtoMethodsByDefault: true,
+    },
+    helpers: {
+      json: (context) => JSON.stringify(context, null, 2),
+    },
+  })
+);
+app.set("view engine", "handlebars");
+app.set("views", path.join(__dirname, "views"));
 
-// Rutas de la aplicación
-app.get('/', async (req, res) => {
-  try {
-    const products = await productManager.getAllProducts();
-    res.render('home', { products });
-  } catch (error) {
-    console.error('Error al cargar productos:', error);
-    res.status(500).send('Error al cargar productos');
-  }
-});
+// Middleware
+app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.urlencoded({ extended: true })); // Procesar datos de formularios
+app.use(express.json()); // Procesar JSON en solicitudes
 
-// Ruta secundaria para "/home"
-app.get('/home', async (req, res) => {
-  try {
-    const products = await productManager.getAllProducts();
-    res.render('home', { products });
-  } catch (error) {
-    console.error('Error al cargar productos en /home:', error);
-    res.status(500).send('Error al cargar productos');
-  }
-});
+// Configuración de rutas
+app.use("/", viewsRouter);
+app.use("/api/products", productsRouter);
+app.use("/api/carts", cartsRouter);
 
-// Ruta para realtimeproducts
-app.get('/realtimeproducts', (req, res) => {
-  res.render('realTimeProducts');  
-});
+// WebSocket para manejar actualizaciones en tiempo real
+let productsCache = []; // Cache local de productos
 
-// Ruta para dashboard 
-app.get('/dashboard', async (req, res) => {
-  try {
-    const products = await productManager.getAllProducts();
-    const user = {
-      username: "invitado",
-      isAdmin: false
-    };
-    res.render('dashboard', { products, user });
-  } catch (error) {
-    console.error('Error al cargar productos en /dashboard:', error);
-    res.status(500).send('Error al cargar productos');
-  }
-});
+io.on("connection", (socket) => {
+  console.log("Nuevo cliente conectado");
 
-// WebSocket para productos en tiempo real
-let products = []; 
+  // Enviar productos actuales al cliente
+  socket.emit("product-list", productsCache);
 
-// Agregar un nuevo producto usando WebSocket
-app.post('/add-product', (req, res) => {
-  const newProduct = req.body.product;
-  products.push(newProduct);
-
-  // Emitir el nuevo producto a todos los clientes conectados
-  io.emit('new-product', newProduct);
-
-  res.redirect('/');  
-});
-
-// Eliminar un producto usando WebSocket
-app.post('/delete-product', (req, res) => {
-  const productToDelete = req.body.product;
-  products = products.filter(p => p.id !== productToDelete.id);
-
-  // Emitir la eliminación del producto
-  io.emit('delete-product', productToDelete.id);
-
-  res.redirect('/');  
-});
-
-// Configuración de WebSockets
-io.on('connection', (socket) => {
-  console.log('Nuevo cliente conectado');
-
-  // Enviar la lista actualizada de productos a los nuevos clientes
-  socket.emit('product-list', products);
-
-  // Manejar desconexiones
-  socket.on('disconnect', () => {
-    console.log('Cliente desconectado');
-  });
-
-  // Agregar nuevo producto
+  // Escuchar eventos para añadir un producto
   socket.on("newProduct", async (productData) => {
     try {
-      const newProduct = await productManager.createProduct(productData);
-      products.push(newProduct);
-      io.emit("productAdded", newProduct);
+      const newProduct = new Product(productData);
+      await newProduct.save();
+      productsCache.push(newProduct); // Actualizar cache local
+      io.emit("productAdded", newProduct); // Emitir el nuevo producto a todos los clientes
     } catch (error) {
       console.error("Error al añadir el producto", error);
     }
   });
 
-  // Eliminar producto
+  // Escuchar eventos para eliminar un producto
   socket.on("deleteProduct", async (productId) => {
     try {
-      await productManager.deleteProductById(productId);
-      products = products.filter(product => product.id !== productId);
-      io.emit("productDeleted", productId);
+      await Product.findByIdAndDelete(productId); // Eliminar de la base de datos
+      productsCache = productsCache.filter((product) => product._id.toString() !== productId); // Actualizar cache local
+      io.emit("productDeleted", productId); // Emitir la eliminación a todos los clientes
     } catch (error) {
       console.error("Error al eliminar el producto", error);
     }
   });
+
+  // Manejar desconexiones
+  socket.on("disconnect", () => {
+    console.log("Cliente desconectado");
+  });
 });
 
+// Inicializar productos en el cache al iniciar el servidor
+(async () => {
+  try {
+    productsCache = await Product.find(); // Cargar productos desde la base de datos
+  } catch (error) {
+    console.error("Error al cargar productos en el inicio:", error);
+  }
+})();
+
 // Iniciar el servidor
-const PORT = 8080;
+const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
 });

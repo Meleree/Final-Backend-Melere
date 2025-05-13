@@ -6,13 +6,65 @@ body {
     font-family: 'Arial', sans-serif;
 }
 
+/* Navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #2c2c2c;
+    position: relative;
+}
+
+.logo-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.logo {
+    height: 50px;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    margin-left: auto; /* Mueve los enlaces hacia la derecha */
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #dfe6e9;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.nav-links a:hover {
+    color: #6c5ce7;
+}
+
+.cart-btn {
+    background-color: #8e44ad;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.cart-btn:hover {
+    background-color: #6c5ce7;
+}
+
 /* Cards */
 .dashboard {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 20px;
+    display: grid; /* Cambiar a un grid layout */
+    grid-template-columns: repeat(4, 1fr); /* 4 columnas de igual ancho */
+    gap: 20px; /* Espacio entre las cards */
     padding: 20px;
+    justify-content: center; /* Centrar las filas */
 }
 
 .product-card {
@@ -53,24 +105,46 @@ body {
     color: #dfe6e9;
 }
 
-/* Botón Eliminar */
-.delete-btn {
-    background-color: #8e44ad; 
+/* Botón base */
+.btn {
+    background-color: #8e44ad;
     color: white;
-    border: none;
     padding: 10px 15px;
-    margin-top: 10px;
     border-radius: 8px;
-    cursor: pointer;
+    text-decoration: none;
     font-weight: bold;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
     transition: background-color 0.3s ease;
 }
 
-.delete-btn:hover {
+.btn:hover {
     background-color: #6c5ce7;
 }
 
-/* Botón Enviar (formulario) */
+/* Botón Eliminar */
+.delete-btn {
+    background-color: #e74c3c;
+}
+
+.delete-btn:hover {
+    background-color: #c0392b;
+}
+
+/* Inputs de formulario */
+form input[type="text"],
+form input[type="number"],
+form input[type="file"] {
+    width: 100%;
+    padding: 8px;
+    margin-top: 10px;
+    background-color: #2c2c2c;
+    color: #dfe6e9;
+    border: 1px solid #6c5ce7;
+    border-radius: 8px;
+}
+
 form button {
     background-color: #6c5ce7;
     color: white;
@@ -87,15 +161,7 @@ form button:hover {
     background-color: #8e44ad;
 }
 
-/* Inputs de formulario */
-form input[type="text"],
-form input[type="number"],
-form input[type="file"] {
-    width: 100%;
-    padding: 8px;
-    margin-top: 10px;
-    background-color: #2c2c2c;
-    color: #dfe6e9;
-    border: 1px solid #6c5ce7;
-    border-radius: 8px;
+h1 {
+    text-align: center;
+    color: grey;
 }

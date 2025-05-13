@@ -7,9 +7,24 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+  <header>
+    <nav class="navbar">
+      <div class="logo-container">
+        <a href="/home">
+          <img src="/img/melere.webp" alt="Logo" class="logo">
+        </a>      
+      </div>
+      <ul class="nav-links">
+        <li>
+          <a href="/carts" class="cart-btn">🛒</a>
+        </li>
+      </ul>
+    </nav>
+  </header>
+  <main>
     {{{body}}}
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/js/index.js"></script>
-    <script src="/js/delete.js"></script> 
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/index.js"></script>
 </body>
 </html>

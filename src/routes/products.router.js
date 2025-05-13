@@ -1,115 +1,155 @@
 import { Router } from "express";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";  
-import uploader from '../utils/uploader.js';
+import multer from "multer"; // Importar multer para manejar archivos
+import Product from "../models/product.model.js";
+
+// Configuración de multer para manejar archivos
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "public/uploads"); // Carpeta donde se guardarán los archivos
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`); // Nombre único del archivo
+  },
+});
+const upload = multer({ storage });
 
 const productsRouter = Router();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const productsFilePath = path.join(__dirname, "../data/products.json");
-
-const readProducts = () => {
+// Obtener todos los productos con paginación, filtros y ordenamiento
+productsRouter.get("/", async (req, res) => {
   try {
-    const data = fs.readFileSync(productsFilePath, "utf-8");
-    return JSON.parse(data);
+    const { limit = 10, page = 1, query = "", sort = "" } = req.query;
+
+    const limitParsed = Math.max(parseInt(limit), 1); // Asegurar que sea un número positivo
+    const pageParsed = Math.max(parseInt(page), 1);
+    const sortOrder = sort === "asc" ? 1 : sort === "desc" ? -1 : null;
+
+    const filters = {};
+    if (query) {
+      filters.$or = [{ category: query }, { status: query === "available" }];
+    }
+
+    const products = await Product.paginate(filters, {
+      limit: limitParsed,
+      page: pageParsed,
+      sort: sortOrder ? { price: sortOrder } : undefined,
+    });
+
+    res.status(200).json({
+      status: "success",
+      payload: products.docs,
+      totalPages: products.totalPages,
+      prevPage: products.prevPage,
+      nextPage: products.nextPage,
+      page: products.page,
+      hasPrevPage: products.hasPrevPage,
+      hasNextPage: products.hasNextPage,
+      prevLink: products.hasPrevPage ? `/products?page=${products.prevPage}` : null,
+      nextLink: products.hasNextPage ? `/products?page=${products.nextPage}` : null,
+    });
   } catch (error) {
-    return [];
+    console.error("Error al obtener productos:", error.message);
+    res.status(500).json({ status: "error", message: "Error al obtener los productos." });
   }
-};
-
-const writeProducts = (products) => {
-  fs.writeFileSync(productsFilePath, JSON.stringify(products, null, 2));
-};
-
-// Obtener todos los productos
-productsRouter.get("/", (req, res) => {
-  const products = readProducts();
-  res.json(products);
 });
 
 // Obtener un producto por ID
-productsRouter.get("/:pid", (req, res) => {
-  const { pid } = req.params;
-  const products = readProducts();
-  const product = products.find(p => p.id === pid);
-
-  if (!product) {
-    return res.status(404).json({ message: "Producto no encontrado" });
+productsRouter.get("/:pid", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.pid);
+    if (!product) {
+      return res.status(404).json({ status: "error", message: "Producto no encontrado" });
+    }
+    res.status(200).json({ status: "success", payload: product });
+  } catch (error) {
+    console.error("Error al obtener el producto:", error.message);
+    res.status(500).json({ message: "Error al obtener el producto." });
   }
-  res.json(product);
 });
 
-// Agregar un producto
-productsRouter.post("/", uploader.single("file"), (req, res) => {
-  const { title, description, code, price, status, stock, category } = req.body;
-  const thumbnails = req.file ? [req.file.filename] : [];
+// Agregar un producto con validación
+productsRouter.post("/", upload.single("thumbnail"), async (req, res) => {
+  try {
+    const { title, description, code, price, stock, category } = req.body;
 
-  const products = readProducts();
+    // Validar campos obligatorios
+    if (!title || !description || !code || !price || !stock || !category) {
+      return res.status(400).json({ message: "Todos los campos obligatorios deben estar presentes." });
+    }
 
-  const newProduct = {
-    id: (products.length + 1).toString(),
-    title,
-    description,
-    code,
-    price,
-    status,
-    stock,
-    category,
-    thumbnails
-  };
+    // Validar que los valores numéricos sean válidos
+    if (isNaN(price) || price <= 0) {
+      return res.status(400).json({ message: "El precio debe ser un número mayor que 0." });
+    }
+    if (isNaN(stock) || stock < 0) {
+      return res.status(400).json({ message: "El stock debe ser un número mayor o igual que 0." });
+    }
 
-  products.push(newProduct);
-  writeProducts(products);
+    const newProduct = new Product({
+      title,
+      description,
+      code,
+      price: parseFloat(price),
+      stock: parseInt(stock),
+      category,
+      thumbnail: req.file ? `/uploads/${req.file.filename}` : null, // Guardar la ruta del archivo
+    });
 
-  res.status(201).json(newProduct);
+    await newProduct.save();
+    res.status(201).json({ status: "success", payload: newProduct });
+  } catch (error) {
+    console.error("Error al agregar el producto:", error.message);
+    res.status(500).json({ message: "Error al agregar el producto." });
+  }
 });
 
-// Actualizar un producto
-productsRouter.put("/:pid", (req, res) => {
-  const { pid } = req.params;
-  const { title, description, code, price, status, stock, category, thumbnails } = req.body;
-  const products = readProducts();
-  const productIndex = products.findIndex(p => p.id === pid);
+// Actualizar un producto con validación
+productsRouter.put("/:pid", async (req, res) => {
+  try {
+    const { title, price, stock, thumbnail, category, description } = req.body;
 
-  if (productIndex === -1) {
-    return res.status(404).json({ message: "Producto no encontrado" });
+    // Al menos un campo debe estar presente
+    if (!title && !price && !stock && !thumbnail && !category && !description) {
+      return res.status(400).json({ message: "Debe proporcionar al menos un campo para actualizar" });
+    }
+
+    // Validar valores numéricos si están presentes
+    if (price !== undefined && (isNaN(price) || price <= 0)) {
+      return res.status(400).json({ message: "El precio debe ser un número mayor que 0." });
+    }
+    if (stock !== undefined && (isNaN(stock) || stock < 0)) {
+      return res.status(400).json({ message: "El stock debe ser un número mayor o igual que 0." });
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.pid,
+      { title, price, stock, thumbnail, category, description },
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ status: "error", message: "Producto no encontrado" });
+    }
+
+    res.status(200).json({ status: "success", payload: updatedProduct });
+  } catch (error) {
+    console.error("Error al actualizar el producto:", error.message);
+    res.status(500).json({ message: "Error al actualizar el producto." });
   }
-
-  const updatedProduct = {
-    ...products[productIndex],
-    title,
-    description,
-    code,
-    price,
-    status,
-    stock,
-    category,
-    thumbnails,
-  };
-
-  products[productIndex] = updatedProduct;
-  writeProducts(products);
-
-  res.json(updatedProduct);
 });
 
 // Eliminar un producto
-productsRouter.delete("/:pid", (req, res) => {
-  const { pid } = req.params;
-  const products = readProducts();
-  const productIndex = products.findIndex(p => p.id === pid);
-
-  if (productIndex === -1) {
-    return res.status(404).json({ message: "Producto no encontrado" });
+productsRouter.delete("/:pid", async (req, res) => {
+  try {
+    const deletedProduct = await Product.findByIdAndDelete(req.params.pid);
+    if (!deletedProduct) {
+      return res.status(404).json({ status: "error", message: "Producto no encontrado" });
+    }
+    res.status(204).end();
+  } catch (error) {
+    console.error("Error al eliminar el producto:", error.message);
+    res.status(500).json({ message: "Error al eliminar el producto." });
   }
-
-  products.splice(productIndex, 1);
-  writeProducts(products);
-
-  res.status(204).end();
 });
 
 export default productsRouter;

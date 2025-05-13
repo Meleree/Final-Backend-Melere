@@ -7,15 +7,16 @@
   <input type="number" name="price" placeholder="Ingrese el precio" required>
   <input type="number" name="stock" placeholder="Ingrese el stock" required>
   <input type="text" name="category" placeholder="Ingrese la categoría" required>
-
+  <input type="text" name="thumbnail" placeholder="Ingrese la URL de la imagen" required> <!-- Nuevo campo -->
   <button type="submit">Enviar</button>
 </form>
 
 <ul id="productList">
   {{#each products}}
-    <li data-id="{{this.id}}">
+    <li data-id="{{this._id}}">
+      <img src="{{this.thumbnail}}" alt="{{this.title}}" style="width: 50px; height: 50px;"> <!-- Mostrar la imagen -->
       {{this.title}} - ${{this.price}} 
-      <button class="delete-btn" data-id="{{this.id}}">Eliminar</button>
+      <button class="delete-btn" data-id="{{this._id}}">Eliminar</button>
     </li>
   {{/each}}
 </ul>
